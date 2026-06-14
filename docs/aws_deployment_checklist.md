@@ -8,33 +8,31 @@ Use this checklist before deploying the FastAPI backend on EC2.
 - Rotate/delete any access key that has been shared in chat or committed anywhere.
 - Prefer an EC2 IAM Role for S3 access.
 
-## 2. Information Needed From the Team Lead
+## 2. Confirmed Deployment Values
 
-Ask the team lead to confirm:
-
-```text
-AWS_REGION = ?
-S3_BUCKET = ?
-MODEL_KEY = ?
-META_KEY = ?
-EC2 public IP = ?
-EC2 SSH username = ubuntu or ec2-user?
-EC2 SSH key file = ?
-API port = 8000 or 8080?
-Security Group allows inbound API port = yes/no?
-EC2 IAM Role can read the model artifacts = yes/no?
-```
-
-Current expected values:
+Current confirmed values:
 
 ```text
 AWS_REGION=us-east-2
 S3_BUCKET=insy684
 MODEL_KEY=bixi-models/model_lightgbm.txt
 META_KEY=bixi-models/meta_lightgbm.pkl
+EC2 public IP=18.118.143.165
+EC2 SSH username=ubuntu
+API port=8000
+Security Group=bixi-fastapi-sg
+EC2 IAM Role=bixi-ec2-s3-read-role
 ```
 
-The `MODEL_KEY` and `META_KEY` values are placeholders until the exact S3 paths are confirmed.
+Public endpoints:
+
+```text
+http://18.118.143.165:8000/health
+http://18.118.143.165:8000/docs
+http://18.118.143.165:8000/predict
+```
+
+If the team creates a new EC2 instance later, confirm the same fields again before deployment.
 
 ## 3. EC2 Smoke Checks
 
@@ -52,9 +50,11 @@ If either command fails, the EC2 IAM Role or AWS CLI setup is not ready.
 From the repository folder on EC2:
 
 ```bash
-docker build -t bixi-demand-api .
+sudo docker build -t bixi-demand-api .
 
-docker run -p 8000:8000 \
+sudo docker run -d \
+  --name bixi-demand-api \
+  -p 8000:8000 \
   -e AWS_REGION=us-east-2 \
   -e S3_BUCKET=insy684 \
   -e MODEL_SOURCE=s3 \
@@ -72,7 +72,24 @@ http://<ec2-public-ip>:8000/docs
 Health check:
 
 ```bash
-curl http://<ec2-public-ip>:8000/health
+curl http://18.118.143.165:8000/health
+```
+
+Prediction check:
+
+```bash
+curl -X POST http://18.118.143.165:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "station": "10e avenue / Masson",
+    "date": "2026-01-01",
+    "hour": 8,
+    "is_holiday": 0,
+    "temperature": 22.5,
+    "feels_like": 23.0,
+    "wind_speed": 12.0,
+    "bad_weather": 0
+  }'
 ```
 
 ## 5. Expected Architecture

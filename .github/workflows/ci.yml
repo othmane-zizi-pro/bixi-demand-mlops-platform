@@ -30,3 +30,25 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t bixi-demand-api .
+
+      - name: Smoke test Docker container
+        run: |
+          docker run -d \
+            --name bixi-demand-api-ci \
+            -p 8000:8000 \
+            -e MODEL_SOURCE=local \
+            bixi-demand-api
+
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs bixi-demand-api-ci
+          exit 1
+
+      - name: Clean up Docker container
+        if: always()
+        run: docker rm -f bixi-demand-api-ci || true

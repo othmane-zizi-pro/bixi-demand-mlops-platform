@@ -10,11 +10,12 @@ The workflow is defined in:
 .github/workflows/ci.yml
 ```
 
-It runs three checks:
+It runs four checks:
 
 1. Install Python dependencies from `requirements.txt`.
 2. Run the automated tests with `pytest -q`.
 3. Build the FastAPI Docker image with `docker build -t bixi-demand-api .`.
+4. Start the Docker container and call `GET /health`.
 
 If all three steps pass, the pull request gets a green check. If any step fails, GitHub shows a red X and the team should fix the branch before merging.
 
@@ -53,6 +54,7 @@ Open the failed workflow run and check which step failed:
 - `Install dependencies`: usually a missing or incompatible package in `requirements.txt`.
 - `Run tests`: usually a Python code or API behavior issue.
 - `Build Docker image`: usually a Dockerfile, dependency, or missing file issue.
+- `Smoke test Docker container`: usually a runtime dependency, app import, model loading, or container startup issue.
 
 Fix the issue locally, run the same command locally, commit the fix, and push again. GitHub Actions will rerun automatically.
 
@@ -73,13 +75,13 @@ docker build -t bixi-demand-api .
 Optional local API smoke test:
 
 ```bash
-docker run --rm -p 8000:8000 bixi-demand-api
+docker run --rm -p 8000:8000 -e MODEL_SOURCE=local bixi-demand-api
 curl http://localhost:8000/health
 ```
 
 ## Current Deployment Boundary
 
-This CI workflow verifies that the code can be tested and containerized. It does not deploy to EC2 yet.
+This CI workflow verifies that the code can be tested, containerized, and started successfully. It does not deploy to EC2 yet.
 
 Deployment should be added later only after the team confirms:
 

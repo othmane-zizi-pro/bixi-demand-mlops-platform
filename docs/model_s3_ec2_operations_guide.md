@@ -105,7 +105,60 @@ bixi-ec2-s3-read-role
 
 The IAM Role must be attached to the EC2 instance and must allow S3 read access to the model artifact paths.
 
-## 4. Files Added For MLOps
+## 4. Team Dataset Sharing Workflow
+
+Use S3 as the shared source of truth for datasets. Do not use GitHub for large raw data files, and do not treat the EC2 disk as the permanent shared data store.
+
+Recommended S3 layout:
+
+```text
+s3://insy684/bixi-data/raw/
+s3://insy684/bixi-data/processed/
+s3://insy684/bixi-data/features/
+s3://insy684/bixi-models/
+```
+
+Current known raw data example:
+
+```text
+s3://insy684/bixi-data/2024/DonneesOuvertes (2).csv
+```
+
+Recommended team rules:
+
+- Keep raw data immutable. Do not overwrite raw files after uploading them.
+- Put cleaned or transformed data into a new processed folder.
+- Use versioned paths for important outputs, such as `processed/v1/`, `processed/v2/`, or date-based folders.
+- Add a short `README.md` or manifest next to important processed datasets describing who created the file, when it was created, and what notebook/script produced it.
+- Use GitHub for notebooks, scripts, API code, tests, and documentation.
+- Use S3 for raw data, processed data, feature tables, and model artifacts.
+
+Common S3 commands:
+
+```bash
+aws s3 ls s3://insy684/bixi-data/
+aws s3 cp local_file.csv s3://insy684/bixi-data/processed/v1/local_file.csv
+aws s3 sync processed/ s3://insy684/bixi-data/processed/v1/
+```
+
+When using EC2 through SSH:
+
+- SSH is for running jobs, testing deployment, and checking logs.
+- S3 remains the shared storage location.
+- If a script on EC2 produces a new dataset, upload the result back to S3.
+
+Example:
+
+```bash
+ssh -i bixi-ec2-key.pem ubuntu@18.118.143.165
+
+# Run a data processing script on EC2, then upload output to S3.
+aws s3 cp output/model_features.csv s3://insy684/bixi-data/features/v1/model_features.csv
+```
+
+This workflow prevents teammates from overwriting each other's local files and keeps the data lineage easier to explain in the final presentation.
+
+## 5. Files Added For MLOps
 
 Main API and serving files:
 
@@ -133,7 +186,7 @@ docs/aws_deployment_checklist.md
 docs/model_s3_ec2_operations_guide.md
 ```
 
-## 5. How The API Loads The Model
+## 6. How The API Loads The Model
 
 The backend can load artifacts from either local files or S3.
 
@@ -157,7 +210,7 @@ AWS_REGION=us-east-2
 
 On EC2, we do not pass AWS access keys. `boto3` uses the EC2 IAM Role automatically.
 
-## 6. Model Artifact Contract
+## 7. Model Artifact Contract
 
 The current API expects two files:
 
@@ -227,7 +280,7 @@ README.md
 
 Do not only upload a new model if the feature schema changed. The API code must match the model schema.
 
-## 7. For Modeling Teammates: How To Update The Model
+## 8. For Modeling Teammates: How To Update The Model
 
 ### Step 1: Train The New Model
 
@@ -362,7 +415,7 @@ Expected response shape:
 
 The number may change after retraining. The response should still return successfully.
 
-## 8. How To Rebuild The Docker Image On EC2
+## 9. How To Rebuild The Docker Image On EC2
 
 Use this only after code changes, dependency changes, Dockerfile changes, or GitHub updates.
 
@@ -398,7 +451,7 @@ Check logs:
 sudo docker logs bixi-demand-api
 ```
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 ### `curl: (7) Failed to connect`
 
@@ -489,7 +542,7 @@ sudo docker logs bixi-demand-api
 
 The logs usually identify missing libraries, missing environment variables, or S3 permission errors.
 
-## 10. Security Rules
+## 11. Security Rules
 
 Do not commit:
 
@@ -517,7 +570,7 @@ not:
 hard-coded AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
 ```
 
-## 11. What To Tell The Team
+## 12. What To Tell The Team
 
 Current status:
 
