@@ -5,3 +5,8 @@ lightgbm
 pydeck
 requests
 plotly
+fastapi
+uvicorn[standard]
+boto3
+pytest
+httpx
