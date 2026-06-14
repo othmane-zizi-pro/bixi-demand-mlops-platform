@@ -222,6 +222,12 @@ Workflow file:
 .github/workflows/ci.yml
 ```
 
+Team guide:
+
+```
+docs/github_actions_guide.md
+```
+
 AWS deployment notes are in:
 
 ```
