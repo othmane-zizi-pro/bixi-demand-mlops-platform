@@ -212,6 +212,22 @@ Run:
 pytest -q
 ```
 
+### CI
+
+GitHub Actions runs the test suite and checks that the Docker image can build on pull requests into `main`.
+
+Workflow file:
+
+```
+.github/workflows/ci.yml
+```
+
+AWS deployment notes are in:
+
+```
+docs/aws_deployment_checklist.md
+```
+
 ---
 ## Limitations
 - **Limited feature set:** Features are restricted to historical demand, time, and weather. The model struggles to capture extreme peaks.
