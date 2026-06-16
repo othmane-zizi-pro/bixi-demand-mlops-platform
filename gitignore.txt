@@ -1,0 +1,16 @@
+# AWS credentials
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large data files
+*.csv
+*.zip
