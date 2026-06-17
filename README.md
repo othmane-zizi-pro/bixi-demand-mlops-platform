@@ -12,6 +12,58 @@
 This project builds an **end-to-end machine learning pipeline** to predict **hourly bike-sharing demand** for BIXI stations in Montreal. Using historical **BIXI trip data** and **Montreal weather data**, the pipeline performs data cleaning and feature engineering on **temporal and weather features**, trains a **LightGBM regression model** with **Bayesian hyperparameter optimization**, and groups stations into demand tiers using **K-Means clustering**. The **Streamlit app** integrates a **16-day weather forecast** from the **Open-Meteo API** and visualizes station clusters with a **PyDeck heatmap** to support station-level operational planning.
 
 ---
+## Phase 2 — Production MLOps modeling pipeline
+
+The course-2 work upgrades the modeling into a **resumable, cloud-native pipeline**
+(`src/bixi/`, `python -m bixi.pipeline`): 15-minute demand, **departures and
+arrivals**, **all** stations, leakage-safe encoding, **multi-model + FLAML AutoML +
+Optuna**, **MLflow** tracking & registry, **SHAP/LIME**, **fairness**, and
+**4-type drift** — trained in the cloud on **AWS Batch**, with the MLflow server,
+S3, VPC and Batch all provisioned by **AWS CDK** (`infra/`).
+
+- Design & decisions: [`docs/phase2_modeling.md`](docs/phase2_modeling.md)
+- Run in the cloud: `./scripts/run_pipeline.sh --targets both --run-id 2024-prod`
+  (resume a step with `--from train` / `--only drift`)
+- Deploy infra: `BIXI_ALLOW_CIDR=<your-ip>/32 ./scripts/deploy_infra.sh` ·
+  teardown (backs up first): `./scripts/teardown.sh`
+
+### Where every asset lives (S3 + MLflow)
+
+Two buckets. **`insy684`** is persistent (created in Phase 1, *not* CDK-managed).
+The **CDK pipeline bucket** holds the pipeline outputs + MLflow artifacts and is
+**deleted on `cdk destroy`** — `scripts/teardown.sh` backs it up to `insy684` first.
+Its name is in SSM `/bixi/pipeline-bucket` and the `BixiStorage` CDK output (currently
+`bixistorage-pipelinebucketb967bd35-icnkid23rfsa`).
+
+```
+s3://insy684/                         # PERSISTENT (source data + backups)
+├── bixi-data/{2024,2025,2026}/       # raw BIXI open-data trip CSVs
+├── weather-data/                     # 15-min Montreal weather (Open-Meteo): 2024, 2025-may, 2025-oct
+├── processed-data/                   # Phase-1 feature tables (originals)
+├── processed-data-clean/             # date-filtered canonical copies (this PR; scripts/fix_misranged_features.py)
+├── bixi-models/                      # course-1 hourly model (legacy)
+├── bixi-mlops/runs/…                 # earlier LOCAL smoke-run checkpoints (run-id "smoke")
+└── bixi-mlops-backup/                # created by scripts/teardown.sh (artifacts + mlflow_runs_snapshot.json)
+
+s3://<CDK pipeline bucket>/           # EPHEMERAL (cloud run outputs; backed up on teardown)
+├── bixi-mlops/runs/<run-id>/<target>/    # <target> = departure | arrival ; cloud run-id = "cloud-2024"
+│   ├── data/      encoder.pkl, tiers.json, data_summary.json
+│   ├── train/     best_model.pkl, metrics.json  (selected model + R²/RMSE/MAE per split)
+│   ├── explain/   shap_summary_beeswarm.png, shap_importance_bar.png, shap_waterfall_*.png,
+│   │              shap_importance.csv, lime_instance_*.html
+│   ├── fairness/  fairness_report.json  (error parity across demand tiers + geo zones)
+│   ├── drift/     {feature,target,prediction}_drift_{2025_may,2025_oct}.html,
+│   │              concept_regression_{2025_may,2025_oct}.html, drift_summary.json
+│   └── register/  registered_model.json
+├── mlflow/<experiment_id>/           # MLflow run artifacts (logged models, etc.)
+└── mlflow-bootstrap/                 # MLflow EC2 bootstrap logs (debug)
+```
+
+**MLflow** (CDK output `BixiMlflow.MlflowPublicUrl`, classic 2.x UI): experiments
+`bixi-demand-departure` / `bixi-demand-arrival` (every candidate + FLAML + Optuna run);
+each best model registered with the **`production`** alias.
+
+---
 ## Repository Structure
 
 ```

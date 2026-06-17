@@ -31,7 +31,17 @@ data/external/
 
 mlruns/
 mlartifacts/
+mlflow.db
+*.db
 .streamlit/secrets.toml
+
+# CDK
+infra/cdk.out/
+infra/.venv/
+cdk.out/
+
+# Pipeline reports (regenerated; viewed via S3 / Streamlit)
+reports/
 
 dist/
 build/
