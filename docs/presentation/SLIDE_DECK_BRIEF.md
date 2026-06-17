@@ -26,11 +26,11 @@ Plus the mandatory submission slide: **team name, every member + GitHub id, repo
 |---|---|---|
 | Othmane Zizi | `othmane-zizi-pro` | Phase 2 — predictive modeling, MLflow, explainability, fairness, drift, AWS CDK infra |
 | Ruihe Zhang (Louis) | `mudkipython` | Phase 1 — data + feature engineering |
-| Sarah Liu | `[CONFIRM handle]` (GitHub email chih-hsuan.liu@mail.mcgill.ca) | Phase 1 — setup, cleaning, EDA |
+| Sarah Liu | `sarahliu-mma` | Phase 1 — setup, cleaning, EDA |
 | Rui Zhao | `ruizhaoca` | Phase 3 clustering + Phase 4 Streamlit/serving |
 - **Repo:** `bixi-demand-mlops-platform` — https://github.com/ruizhaoca/bixi-demand-mlops-platform
-- **Team name:** `[CONFIRM]` — none fixed; propose e.g. "BIXI MLOps" (chat group is "INSY684 Group").
-- **Course footer:** `[CONFIRM 684 vs 695]` — files say INSY684; plan.md says INSY 695.
+- **Team name:** **The Bixi Crew**
+- **Course:** **INSY 684** (use on the footer / title slide)
 
 ## Slide outline (maps every 5.9 section)
 1. **Title** — team name, 4 members + GitHub ids, repo name. *(mandatory)*
@@ -66,9 +66,9 @@ Plus the mandatory submission slide: **team name, every member + GitHub id, repo
 More SHAP/LIME/drift artifacts: `~/bixi_presentation/<target>/{explain,drift}/`.
 Live MLflow (until June 19): http://3.18.229.78:5000 (Models → `@production`).
 
-## Open items to confirm before finalizing
-- Sarah's GitHub handle; the team name; course number (684 vs 695) for the footer.
-- Rui's real clustering metrics + Streamlit screenshots (slides 10–11 are drafted from intent).
+## Open items
+- ✅ Confirmed: team name **The Bixi Crew**; Sarah's handle **`sarahliu-mma`**; course **INSY 684**.
+- Still to swap in: Rui's real clustering metrics + Streamlit screenshots (slides 10–11 are drafted from intent, marked `[CONFIRM w/ Rui]`).
 
 ## Reference docs
 `docs/phase2_modeling.md` (design + architecture + data caveats), root `README.md`
