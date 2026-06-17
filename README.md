@@ -12,6 +12,22 @@
 This project builds an **end-to-end machine learning pipeline** to predict **hourly bike-sharing demand** for BIXI stations in Montreal. Using historical **BIXI trip data** and **Montreal weather data**, the pipeline performs data cleaning and feature engineering on **temporal and weather features**, trains a **LightGBM regression model** with **Bayesian hyperparameter optimization**, and groups stations into demand tiers using **K-Means clustering**. The **Streamlit app** integrates a **16-day weather forecast** from the **Open-Meteo API** and visualizes station clusters with a **PyDeck heatmap** to support station-level operational planning.
 
 ---
+## Phase 2 — Production MLOps modeling pipeline
+
+The course-2 work upgrades the modeling into a **resumable, cloud-native pipeline**
+(`src/bixi/`, `python -m bixi.pipeline`): 15-minute demand, **departures and
+arrivals**, **all** stations, leakage-safe encoding, **multi-model + FLAML AutoML +
+Optuna**, **MLflow** tracking & registry, **SHAP/LIME**, **fairness**, and
+**4-type drift** — trained in the cloud on **AWS Batch**, with the MLflow server,
+S3, VPC and Batch all provisioned by **AWS CDK** (`infra/`).
+
+- Design & decisions: [`docs/phase2_modeling.md`](docs/phase2_modeling.md)
+- Run in the cloud: `./scripts/run_pipeline.sh --targets both --run-id 2024-prod`
+  (resume a step with `--from train` / `--only drift`)
+- Deploy infra: `BIXI_ALLOW_CIDR=<your-ip>/32 ./scripts/deploy_infra.sh` ·
+  teardown: `cd infra && cdk destroy --all`
+
+---
 ## Repository Structure
 
 ```

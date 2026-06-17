@@ -31,3 +31,9 @@ dist/
 build/
 *.egg-info/
 docker-compose.override.yml
+mlflow.db
+*.db
+*.parquet
+infra/cdk.out/
+infra/.venv/
+reports/

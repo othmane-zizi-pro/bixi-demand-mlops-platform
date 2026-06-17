@@ -1,0 +1,20 @@
+# Training / pipeline image for AWS Batch (and local `docker run`).
+FROM python:3.12-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements-train.txt .
+RUN pip install --no-cache-dir -r requirements-train.txt
+
+COPY src/ ./src/
+ENV PYTHONPATH=/app/src \
+    AWS_DEFAULT_REGION=us-east-2 \
+    MPLBACKEND=Agg
+
+# Batch overrides the command with pipeline flags, e.g.
+#   --targets both --run-id cloud --from train
+ENTRYPOINT ["python", "-m", "bixi.pipeline"]
+CMD ["--help"]
