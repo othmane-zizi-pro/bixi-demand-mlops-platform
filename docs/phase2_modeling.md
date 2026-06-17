@@ -86,7 +86,9 @@ labelled data.
 | `BixiBatch` | ECR training image (built by CDK) + AWS Batch managed EC2 compute + job definition. |
 
 Deploy: `BIXI_ALLOW_CIDR=<your-ip>/32 ./scripts/deploy_infra.sh`.
-Teardown: `cd infra && cdk destroy --all`.
+Teardown: `./scripts/teardown.sh` — backs up all artifacts + an MLflow run snapshot
+to `s3://insy684/bixi-mlops-backup/` (the CDK pipeline bucket auto-deletes on
+destroy), then runs `cdk destroy --all`. Use `--backup-only` to keep the infra.
 
 Source feature data is read from the existing `s3://insy684` bucket; everything
 else is created and destroyed by CDK.
