@@ -220,6 +220,46 @@ retrain as a precaution, not an emergency. (And some of that input drift is expe
 we use 2024 as the baseline for every year --- so we review it by hand rather than retraining on a blind
 timer.)''
 \end{simple}
+
+\smallskip
+\noindent\textbf{\color{blue}Reading the KS numbers --- ``isn't that just normal variance?''}
+\begin{simple}
+\textbf{What KS is.} The Kolmogorov--Smirnov statistic compares two distributions by stacking each into a
+cumulative curve and measuring the \emph{single biggest gap} between the curves. It runs \textbf{0 to 1}:
+0 = the two look identical, 1 = no overlap. It reacts to \emph{any} change of shape --- mean, spread or
+form --- not only the average.
+
+\textbf{Your instinct is right --- two samples always differ a little.} Even drawing twice from the
+\emph{same} distribution gives a small non-zero KS, and that noise \emph{shrinks} as the sample grows. With
+our $\approx$50{,}000-row samples the pure-noise floor is only about \textbf{0.009}, and the test flags
+\emph{anything} above it as ``drift'' (p $<$ 0.05). So at this size the yes/no flag is almost always
+``yes''; the honest read is the \textbf{size} of KS, not the flag. You can see the floor directly: the
+three features that did \emph{not} flag --- \texttt{slot\_sin} 0.005, \texttt{slot\_cos} /
+\texttt{precipitation} 0.007 --- sit right at $\approx$0.005--0.009. \emph{That} is what ``just variance''
+looks like. Rough scale: $<$0.1 small, 0.1--0.2 moderate, $>$0.2 large, $>$0.5 huge.
+
+\textbf{So what really drifted (departure, Oct-2025 vs 2024)?}
+\begin{itemize}[leftmargin=1.4em, itemsep=2pt]
+  \item \textbf{Big \& structural --- expected:} \texttt{month} 0.75. We score a single October slice
+        against a \emph{full-year} 2024 reference, so the month feature differs \emph{by construction} ---
+        a windowing artifact, not real-world drift.
+  \item \textbf{Seasonal --- real but expected:} \texttt{temperature} 0.30, \texttt{weather\_code} 0.21,
+        \texttt{wind} 0.11; and the 2024 historical baselines (\texttt{hist\_avg\_demand} and the
+        recent-lag baselines) $\approx$0.25 --- an autumn month genuinely differs from the year-round
+        average. The model is built to handle weather and season.
+  \item \textbf{Essentially noise --- nothing moved:} \texttt{dayofweek} 0.03, \texttt{latitude} 0.03,
+        \texttt{longitude} 0.06, \texttt{precipitation} / \texttt{slot\_cos} 0.007, \texttt{slot\_sin} 0.005.
+        The time-of-day cycle and geography are stable.
+\end{itemize}
+\textbf{Target} 0.11 --- autumn demand sits a bit lower / differently shaped (seasonal). \textbf{Prediction}
+0.36 --- the model \emph{correctly} maps the shifted inputs to a shifted output range; expected, not a fault.
+
+\textbf{The point.} A different \emph{distribution} is not a broken \emph{model}. The only drift that means
+``retrain now'' is \textbf{concept} drift --- the input\,$\to$\,output \emph{rule} changing --- and we test
+that directly with accuracy: \Rtwo{} held at 0.327 $\to$ 0.334. So our drift is the \emph{expected}
+seasonal / windowing kind, the learned rule still holds, and the model stays valid. (By design we use 2024
+as the baseline for every year, so we review this by hand rather than auto-retraining on a timer.)
+\end{simple}
 \trans{``Over to Rui --- turning these forecasts into a rebalancing plan.''}
 
 % ------------------------------------------------------------------ Q&A
