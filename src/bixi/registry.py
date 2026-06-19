@@ -1,8 +1,8 @@
 """MLflow tracking + Model Registry helpers.
 
-Conventions reused by Phase 3 (clustering): one experiment per target
-(``bixi-demand-<target>``) and one registered model per target, promoted via the
-MLflow 3.x **alias** ``production`` (stages are deprecated in 3.x).
+Conventions: one experiment per target (``bixi-demand-<target>``) and one
+registered model per target, promoted via the MLflow 3.x **alias** ``production``
+(stages are deprecated in 3.x).
 
 All helpers degrade gracefully: if the tracking server is unreachable the run
 still completes against a local ``./mlruns`` store so training never hard-fails.
