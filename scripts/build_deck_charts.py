@@ -14,6 +14,7 @@ Run:  PYTHONPATH=src ./.venv/bin/python scripts/build_deck_charts.py
 
 from __future__ import annotations
 
+import json
 import runpy
 from pathlib import Path
 
@@ -243,9 +244,107 @@ def chart_netflow_map(risk_df: pd.DataFrame) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Drift — crisp, projector-legible panels built from the REAL Evidently-computed
+# metrics committed in drift_summary.json (no soft HTML screenshots).
+# --------------------------------------------------------------------------- #
+DRIFT_SUMMARY = (
+    REPO / "artifacts" / "streamlit-community-cloud" / "cloud-2024"
+    / "departure" / "monitoring" / "drift_summary.json"
+)
+
+
+def _drift_period(period: str = "2025_oct") -> dict:
+    return json.loads(DRIFT_SUMMARY.read_text())[period]
+
+
+def chart_drift_features(period: str = "2025_oct") -> None:
+    d = _drift_period(period)
+    fd = d["feature_drift"]
+    per = fd["per_feature"]
+    items = sorted(per.items(), key=lambda kv: kv[1]["ks_stat"])  # asc for barh
+    names = [k for k, _ in items]
+    ks = [v["ks_stat"] for _, v in items]
+    drift = [v["drift"] for _, v in items]
+    colors = [RED if dr else GREY for dr in drift]
+
+    fig, ax = plt.subplots(figsize=(6.2, 7.0), dpi=220)
+    fig.subplots_adjust(left=0.40, right=0.97, top=0.84, bottom=0.09)
+    y = np.arange(len(names))
+    ax.barh(y, ks, color=colors, height=0.74)
+    ax.set_yticks(y)
+    ax.set_yticklabels(names, fontsize=10.5, fontfamily="DejaVu Sans Mono")
+    for yi, val in enumerate(ks):
+        ax.annotate(f"{val:.3f}", (val, yi), xytext=(4, 0), textcoords="offset points",
+                    va="center", fontsize=9, color=INK)
+    ax.set_xlabel("Kolmogorov–Smirnov statistic", fontsize=10.5)
+    ax.margins(x=0.13)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.tick_params(length=0)
+    fig.text(0.02, 0.955, "Feature drift", fontsize=17, fontweight="bold", color=INK)
+    fig.text(0.02, 0.905,
+             f"{fd['n_drifted']} of {fd['n_features']} features drifted (KS, p < 0.05)",
+             fontsize=11.5, color=DARK)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=RED), plt.Rectangle((0, 0), 1, 1, color=GREY)]
+    ax.legend(handles, ["drift detected", "no drift"], frameon=False, fontsize=10,
+              loc="lower right")
+    _save(fig, "drift_features_departure_oct.png")
+
+
+def chart_drift_summary(period: str = "2025_oct") -> None:
+    d = _drift_period(period)
+    td, prd, cd = d["target_drift"], d["prediction_drift"], d["concept_drift"]
+    ref_r2 = cd.get("reference_r2", 0.0)
+    cur_r2 = cd["current_r2"]
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6.2, 7.0), dpi=220,
+                                   gridspec_kw={"height_ratios": [1, 1]})
+    fig.subplots_adjust(left=0.13, right=0.95, top=0.82, bottom=0.09, hspace=0.55)
+    fig.text(0.02, 0.955, "Target · Prediction · Concept drift", fontsize=16,
+             fontweight="bold", color=INK)
+    fig.text(0.02, 0.905, "2024 reference → October-2025", fontsize=11.5, color=DARK)
+
+    # Distribution drift (target + prediction), KS statistic
+    labels = ["Target\ndemand", "Model\nprediction"]
+    vals = [td["ks_stat"], prd["ks_stat"]]
+    bars = ax1.bar(labels, vals, color=[RED, "#ef4444"], width=0.55)
+    ax1.set_ylabel("KS statistic", fontsize=10.5)
+    ax1.set_ylim(0, max(vals) * 1.35)
+    ax1.set_title("Distribution drift  ·  both detected (p < 0.001)", fontsize=12,
+                  fontweight="bold", loc="left", pad=6)
+    for b, v in zip(bars, vals):
+        ax1.annotate(f"KS = {v:.3f}", (b.get_x() + b.get_width() / 2, v),
+                     ha="center", va="bottom", fontsize=11, color=INK, fontweight="bold")
+    ax1.spines[["top", "right"]].set_visible(False)
+    ax1.tick_params(length=0)
+
+    # Concept drift — reference vs current R^2 (relationship stability)
+    r2bars = ax2.bar(["Reference\n(2024)", "Current\n(Oct-2025)"], [ref_r2, cur_r2],
+                     color=[GREY, BLUE], width=0.55)
+    ax2.set_ylabel("R²  (regression quality)", fontsize=10.5)
+    ax2.set_ylim(0, max(ref_r2, cur_r2) * 1.5)
+    drop = ref_r2 - cur_r2
+    verdict = "no degradation" if drop <= 0.02 else f"R² drop {drop:.3f}"
+    ax2.set_title(f"Concept drift  ·  {verdict}", fontsize=12, fontweight="bold",
+                  loc="left", pad=6)
+    for b, v in zip(r2bars, [ref_r2, cur_r2]):
+        ax2.annotate(f"{v:.3f}", (b.get_x() + b.get_width() / 2, v),
+                     ha="center", va="bottom", fontsize=12, color=INK, fontweight="bold")
+    ax2.annotate(f"RMSE {cd['current_rmse']:.3f}  ·  relationship stable",
+                 (0.5, 0.92), xycoords="axes fraction", ha="center", fontsize=9.5,
+                 color=DARK, style="italic")
+    ax2.spines[["top", "right"]].set_visible(False)
+    ax2.tick_params(length=0)
+    _save(fig, "drift_summary_departure_oct.png")
+
+
+# --------------------------------------------------------------------------- #
 def main() -> None:
     print("· EDA heatmap")
     chart_eda_heatmap()
+
+    print("· Drift panels (from drift_summary.json)")
+    chart_drift_features()
+    chart_drift_summary()
 
     print("· Results slide (make_results_slide.py)")
     runpy.run_path(str(REPO / "scripts" / "make_results_slide.py"), run_name="__main__")

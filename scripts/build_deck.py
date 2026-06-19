@@ -73,8 +73,8 @@ A = {
     "mlflow_arr": PRES / "mlflow_arrival_runs.png",
     "mlflow_reg": PRES / "mlflow_model_registry.png",
     "mlflow_model": PRES / "mlflow_model_departure.png",
-    "drift_feat": PRES / "drift_feature_departure_oct.png",
-    "drift_concept": PRES / "drift_concept_departure_oct.png",
+    "drift_feat": CHARTS / "drift_features_departure_oct.png",
+    "drift_concept": CHARTS / "drift_summary_departure_oct.png",
     "ec2": PRES / "ec2_streamlit_container_running.png",
     "st_7day": CHARTS / "streamlit_7day_forecast.png",
     "st_rebal": CHARTS / "streamlit_rebalancing.png",
@@ -701,8 +701,8 @@ def s_fairness_drift(prs):
 
     img_fit(slide, A["drift_feat"], 4.75, 1.7, 4.0, 4.5, frame=True)
     img_fit(slide, A["drift_concept"], 8.85, 1.7, 3.95, 4.5, frame=True)
-    for x, txt, w in [(4.75, "feature drift · Oct-2025", 4.0),
-                      (8.85, "concept drift · Oct-2025", 3.95)]:
+    for x, txt, w in [(4.75, "feature drift (KS) · Oct-2025", 4.0),
+                      (8.85, "target / prediction / concept · Oct-2025", 3.95)]:
         _, tfc = textbox(slide, x, 6.25, w, 0.3)
         para(tfc, txt, 10.5, bold=True, color=GREY, align=PP_ALIGN.CENTER, first=True)
     notes(slide, NOTES[11])
