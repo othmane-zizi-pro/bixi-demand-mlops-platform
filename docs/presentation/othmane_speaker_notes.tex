@@ -44,6 +44,13 @@
   innertopmargin=6pt, innerbottommargin=6pt, innerleftmargin=8pt, innerrightmargin=8pt
 ]{say}
 
+% "Explain simply" block
+\newmdenv[
+  linecolor=slate, linewidth=0.8pt, backgroundcolor=paper,
+  roundcorner=4pt, skipabove=5pt, skipbelow=6pt,
+  innertopmargin=6pt, innerbottommargin=6pt, innerleftmargin=8pt, innerrightmargin=8pt
+]{simple}
+
 \newcommand{\timing}[1]{\hfill{\normalsize\itshape\color{slate}(#1)}}
 \newcommand{\hit}{\smallskip\noindent\textbf{\color{ink}Hit these:}}
 \newcommand{\trans}[1]{\smallskip\noindent\textbf{\color{bixired}Transition:} \emph{#1}}
@@ -181,6 +188,38 @@ monitoring and retraining. That's the modelling story --- over to Rui for what w
   \item Fairness = \textbf{error parity} across tiers/geography; weak on low-demand \arr{} flagged, not hidden.
   \item \textbf{All four} Evidently drift types (feature / target / prediction / concept), shown on Oct-2025.
 \end{itemize}
+
+\smallskip
+\noindent\textbf{\color{blue}Explain it simply --- the ``12-year-old'' version} (use this if a judge asks
+``what \emph{is} drift?'' or you want to teach it on the spot):
+\begin{simple}
+\textbf{Big idea:} ``Drift just asks one question --- \emph{has the world changed since we taught the
+model?} We trained it on 2024; now it's October 2025. Is that a different world? We check four things.''
+\begin{itemize}[leftmargin=1.4em, itemsep=3pt]
+  \item \textbf{1. Feature drift --- did the \emph{inputs} change?} Put all the 2024 temperatures in one
+        pile and all the Oct-2025 temperatures in another, and measure how far apart the two piles sit.
+        That gap is the \textbf{KS number}: 0 means the piles are identical, 1 means totally different.
+        October is a different, colder month, so \texttt{month} (KS 0.75) and \texttt{temperature} (0.30)
+        clearly moved --- \textbf{12 of 15} inputs shifted.
+  \item \textbf{2. Target drift --- did the \emph{answer} change?} The answer is the real number of trips
+        in each 15 minutes. People ride a little differently in autumn, so the thing we're trying to
+        predict also shifted a bit (KS 0.11 --- a small move).
+  \item \textbf{3. Prediction drift --- did the model's \emph{guesses} change?} If the inputs move, the
+        model's outputs naturally move with them (KS 0.36). That's \emph{expected} --- the model is just
+        reacting to a new month, it's not a bug.
+  \item \textbf{4. Concept drift --- did the \emph{rule} change?} This is the one that really matters. Even
+        when all the numbers move, the underlying \emph{rule} --- ``warm weekday evening downtown
+        $\to$ lots of trips'' --- might still be true. We test it by asking: \emph{is the model still as
+        accurate now as it was before?} Its \Rtwo{} was 0.327 then and 0.334 now --- basically identical
+        --- so the rule still holds. \textbf{No concept drift.}
+\end{itemize}
+\textbf{Punchline:} ``The first three just say \emph{the world looks different} --- keep watching.
+Concept drift would say \emph{the model is now actually getting it wrong} --- time to retrain. Here only
+the first three fired and the rule held, so the model is \textbf{still trustworthy}; we'd schedule a
+retrain as a precaution, not an emergency. (And some of that input drift is expected \emph{by design} ---
+we use 2024 as the baseline for every year --- so we review it by hand rather than retraining on a blind
+timer.)''
+\end{simple}
 \trans{``Over to Rui --- turning these forecasts into a rebalancing plan.''}
 
 % ------------------------------------------------------------------ Q&A
