@@ -1,0 +1,213 @@
+\documentclass[11pt]{article}
+
+% Detailed speaker notes for Othmane Zizi (predictive-modelling block, slides 7-11).
+% Build:  tectonic docs/presentation/othmane_speaker_notes.tex
+\usepackage[margin=0.9in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{amssymb}
+\usepackage{mdframed}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{bixired}{HTML}{B91C1C}
+\definecolor{ink}{HTML}{111827}
+\definecolor{slate}{HTML}{374151}
+\definecolor{blue}{HTML}{1D4ED8}
+\definecolor{blsoft}{HTML}{EFF6FF}
+\definecolor{grn}{HTML}{15803D}
+\definecolor{paper}{HTML}{F9FAFB}
+
+\newcommand{\arr}{$\rightarrow$}
+\newcommand{\x}{$\times$}
+\newcommand{\Rtwo}{$R^2$}
+\newcommand{\approxx}{$\approx$}
+
+\setlist[itemize]{leftmargin=1.3em, itemsep=2pt, topsep=2pt}
+\titleformat{\section}{\large\bfseries\color{blue}}{}{0em}{}
+\titlespacing*{\section}{0pt}{16pt}{4pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\lhead{\small\color{slate}Othmane Zizi --- predictive modelling}
+\rhead{\small\color{slate}The Bixi Crew}
+\cfoot{\small\color{slate}\thepage}
+
+% "Say this" block
+\newmdenv[
+  linecolor=blue, linewidth=0.8pt, backgroundcolor=blsoft,
+  roundcorner=4pt, skipabove=5pt, skipbelow=6pt,
+  innertopmargin=6pt, innerbottommargin=6pt, innerleftmargin=8pt, innerrightmargin=8pt
+]{say}
+
+\newcommand{\timing}[1]{\hfill{\normalsize\itshape\color{slate}(#1)}}
+\newcommand{\hit}{\smallskip\noindent\textbf{\color{ink}Hit these:}}
+\newcommand{\trans}[1]{\smallskip\noindent\textbf{\color{bixired}Transition:} \emph{#1}}
+
+\begin{document}
+
+% ------------------------------------------------------------------ Title
+\begin{center}
+\vspace*{0.3cm}
+{\color{blue}\Huge\bfseries Othmane Zizi}\\[6pt]
+{\color{slate}\Large Detailed speaker notes --- predictive modelling}\\[4pt]
+{\color{slate}\large Slides 7--11 \;\textbar\; target \approxx 2:00 (stretch 2:30)}\\[10pt]
+\rule{0.6\linewidth}{1pt}
+\end{center}
+
+\noindent
+\begin{minipage}[t]{0.5\linewidth}
+\textbf{Your run of slides}
+\begin{enumerate}[leftmargin=1.4em, itemsep=1pt]
+  \setcounter{enumi}{6}
+  \item Modelling approach --- multi-model search
+  \item MLflow tracking + registry
+  \item Results
+  \item Explainability (SHAP + LIME)
+  \item Fairness + four-type drift
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\linewidth}
+\textbf{Numbers cheat-sheet}
+\begin{itemize}[leftmargin=1.2em]
+  \item Mean target \approxx \textbf{0.33} trips / 15-min slot
+  \item Tuned val RMSE \textbf{0.994} dep / \textbf{0.976} arr
+  \item Naive val RMSE 1.040 dep / 1.027 arr (\textbf{\approxx 4\% better})
+  \item Test \Rtwo{} \textbf{0.334} dep / \textbf{0.339} arr
+  \item \Rtwo{} by tier (dep, test): \textbf{0.018 / 0.066 / 0.394}
+  \item MLflow runs: \textbf{73} departure / \textbf{57} arrival
+\end{itemize}
+\end{minipage}
+
+\medskip
+\begin{say}
+\textbf{Hand-off in (from Louis):} ``Thanks, Louis. So we have clean, leakage-safe feature tables and a
+pipeline to train on. I own the modelling --- how we pick a model, track it, and prove it's both
+accurate and responsible.''
+\end{say}
+
+% ------------------------------------------------------------------ Slide 7
+\section{Slide 7 --- Modelling: a multi-model search, auto-selected \timing{\approxx 25--30s}}
+\begin{say}
+``We deliberately did \emph{not} hand-pick a model. We run a search. We start with two strong
+gradient-boosting baselines --- LightGBM and XGBoost. On top of that we add \textbf{FLAML}, an AutoML
+layer that searches model families and configurations, and \textbf{Optuna}, which does Bayesian
+hyperparameter tuning. \emph{Every} trial is logged to MLflow. The pipeline then selects the best model
+purely by \textbf{validation RMSE} and promotes it automatically. We run this once per target ---
+departures and arrivals --- and, independently, both land on the same winner: an Optuna-tuned LightGBM,
+`lgbm\_optuna'. So the choice is automatic and reproducible, not a guess.''
+\end{say}
+\hit
+\begin{itemize}
+  \item Candidates (LightGBM + XGBoost) \textbf{+ FLAML AutoML + Optuna HPO}; every trial \arr{} MLflow.
+  \item Selection is \textbf{by validation RMSE}, automatic; both targets independently pick \texttt{lgbm\_optuna}.
+\end{itemize}
+\trans{``Because every trial is tracked, we can stand behind that choice --- here's the tracking.''}
+
+% ------------------------------------------------------------------ Slide 8
+\section{Slide 8 --- MLflow tracking + registry \timing{\approxx 20--25s}}
+\begin{say}
+``All of that is fully traceable. We run an MLflow tracking server on EC2 with an S3 artifact store. The
+departure experiment has \textbf{73 runs}, arrival \textbf{57} --- every candidate, FLAML and Optuna trial,
+with its parameters, metrics and the model itself. The single best run per target is registered in the
+model registry and promoted to the \textbf{production} alias --- and that production model is exactly the
+artifact our apps load and serve. No retraining drift between what we evaluated and what we ship.''
+\end{say}
+\hit
+\begin{itemize}
+  \item Tracking server on \textbf{EC2 + S3}; experiments \texttt{bixi-demand-departure} / \texttt{-arrival}.
+  \item Best run \arr{} \textbf{registered} \arr{} \textbf{production} alias = the exact artifact served.
+\end{itemize}
+\trans{``So how good is that production model? Here are the numbers.''}
+
+% ------------------------------------------------------------------ Slide 9
+\section{Slide 9 --- Results \timing{\approxx 30--35s --- your anchor slide}}
+\begin{say}
+``Two things to read here. First, be honest about the metric: 15-minute, per-station demand is genuinely
+noisy --- the average slot is about a third of a trip, and most slots are zero --- so absolute \Rtwo{} is
+modest \emph{by design}. What matters operationally is the error size, and that's well under \textbf{one
+trip per slot}: RMSE around 1.0, typical error about 0.6.
+
+Second, it's a real model, not a baseline. Against a naive historical-average baseline we cut validation
+RMSE by about \textbf{4\%} and add roughly six points of \Rtwo. It's \textbf{stable across two unseen
+months} --- May and October 2025 --- so no overfitting. And the predictive power is concentrated exactly
+where decisions are made: on high-demand stations the \Rtwo{} is \textbf{0.39}, versus near zero on the
+quietest ones.''
+\end{say}
+\hit
+\begin{itemize}
+  \item Errors \textbf{$<$ 1 trip / slot} (RMSE \approxx 1.0, MAE \approxx 0.6); mean target only \approxx 0.33.
+  \item \textbf{Beats naive} (\approxx 4\% RMSE, +6 pts \Rtwo); \textbf{stable} on two unseen months.
+  \item \Rtwo{} by tier (dep, test): low 0.018, medium 0.066, \textbf{high 0.394} --- strong where it counts.
+\end{itemize}
+\trans{``And we can explain \emph{why} it predicts what it does.''}
+
+% ------------------------------------------------------------------ Slide 10
+\section{Slide 10 --- Explainability: SHAP \& LIME \timing{\approxx 20--25s}}
+\begin{say}
+``We explain both models with SHAP and LIME. The SHAP beeswarms tell a clean, sensible story: most of the
+signal comes from the \textbf{2024 historical baselines} --- recent-lag and historical-average demand ---
+and from the \textbf{cyclical time-of-day} features. Weather is a real but \emph{secondary} driver. It's
+the same picture for departures and arrivals, which is reassuring --- the model is leaning on stable
+demand structure, not noise. LIME lets us explain any single prediction on demand, which matters for
+operator trust.''
+\end{say}
+\hit
+\begin{itemize}
+  \item Top drivers: \texttt{baseline\_prev\_15min}, \texttt{hist\_avg\_demand}, cyclical time; weather secondary.
+  \item Same story dep \& arr \arr{} sensible behaviour; \textbf{LIME} for per-prediction explanations.
+\end{itemize}
+\trans{``Explainability leads straight into responsible AI --- fairness and drift.''}
+
+% ------------------------------------------------------------------ Slide 11
+\section{Slide 11 --- Fairness \& four-type drift \timing{\approxx 25--30s}}
+\begin{say}
+``Two responsible-AI checks. \textbf{Fairness:} we measure error parity --- RMSE and MAE --- across demand
+tiers and geography. As the tier numbers showed, accuracy concentrates in high-demand stations, and on the
+quietest stations \Rtwo{} is near zero. We don't hide that --- we \emph{surface} it so operators don't
+over-trust a quiet-station forecast.
+
+\textbf{Drift:} we monitor all four types with Evidently --- \textbf{feature, target, prediction and
+concept} drift. On the October-2025 data you can see feature drift is detected on a majority of columns,
+which is exactly the kind of seasonal shift the system is meant to catch. That's the hook for scheduled
+monitoring and retraining. That's the modelling story --- over to Rui for what we do with it.''
+\end{say}
+\hit
+\begin{itemize}
+  \item Fairness = \textbf{error parity} across tiers/geography; weak on low-demand \arr{} flagged, not hidden.
+  \item \textbf{All four} Evidently drift types (feature / target / prediction / concept), shown on Oct-2025.
+\end{itemize}
+\trans{``Over to Rui --- turning these forecasts into a rebalancing plan.''}
+
+% ------------------------------------------------------------------ Q&A
+\section{Likely questions (be ready)}
+\begin{itemize}
+  \item \textbf{``Why is \Rtwo{} so low?''} --- It's a 15-minute, per-station target: near-Poisson, mostly
+        zeros, huge per-slot variance, so \Rtwo{} understates skill. We predict the conditional mean well
+        (MAE \approxx 0.6 trip). It beats the naive baseline, is stable out-of-sample, and reaches
+        \Rtwo{} 0.39 on the busy stations where rebalancing decisions actually happen. Aggregate it to
+        hourly/station-day and it looks much higher.
+  \item \textbf{``Why LightGBM and not the FLAML pick / XGBoost?''} --- We didn't decide; the search did.
+        FLAML and Optuna both explored the space; \texttt{lgbm\_optuna} had the lowest validation RMSE for
+        \emph{both} targets, so it was auto-selected and promoted.
+  \item \textbf{``Isn't target encoding a leakage risk?''} --- Encoders and the 2024 baselines are fit on
+        \textbf{train only} (the baselines leave-one-out), then applied forward to May/Oct-2025. Strict
+        temporal split, no peeking. (Sarah's slide 3.)
+  \item \textbf{``What happens when drift fires?''} --- Evidently flags it; that's the trigger for a
+        scheduled re-run of the same pipeline to retrain and re-register a fresh production model --- the
+        roadmap item Rui mentions.
+  \item \textbf{``Departures and arrivals --- two models or one?''} --- One shared pipeline, run twice
+        (once per target). Same features, same selection logic; their difference is the rebalancing signal.
+\end{itemize}
+
+\vfill
+\noindent{\small\color{slate}\hrulefill\\[4pt]
+\textbf{Timing:} 5 slides in \approxx 2 min is brisk --- Slide 9 (Results) is your anchor; if you're
+running long, compress Slides 8 and 10 to one sentence each. Keep the naive-baseline and tier-\Rtwo{}
+numbers --- they carry the ``it's a real, useful model'' argument.}
+
+\end{document}
